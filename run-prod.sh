@@ -11,7 +11,15 @@ fi
 WALLET_DIR="${ORACLE_WALLET_DIR:-$(pwd)/Wallet_ENROLLMENTPLATFORMDB}"
 if [[ ! -f "${WALLET_DIR}/tnsnames.ora" ]]; then
   echo "No se encontró la wallet Oracle en: ${WALLET_DIR}"
-  echo "Descarga la wallet (Instance Wallet) y colócala en Wallet_ENROLLMENTPLATFORMDB/"
+  echo "Descarga la Instance Wallet desde OCI Console y colócala en Wallet_ENROLLMENTPLATFORMDB/"
+  echo "Ver wallet.example/README.md y docs/configuracion-desarrollador.md"
+  exit 1
+fi
+
+if [[ ! -f "${WALLET_DIR}/cwallet.sso" && ! -f "${WALLET_DIR}/ewallet.pem" ]]; then
+  echo "Wallet incompleta en: ${WALLET_DIR}"
+  echo "Falta cwallet.sso o ewallet.pem (certificados mTLS de la wallet descargada de OCI)"
+  echo "Ver wallet.example/README.md"
   exit 1
 fi
 
