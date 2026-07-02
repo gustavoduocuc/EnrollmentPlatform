@@ -36,9 +36,6 @@ build/
 ### Environment ###
 .env
 
-### Oracle wallet (secretos; conservar tnsnames.ora / sqlnet.ora en repo si aplica) ###
-Wallet_ENROLLMENTPLATFORMDB/ewallet.pem
-Wallet_ENROLLMENTPLATFORMDB/ewallet.p12
-Wallet_ENROLLMENTPLATFORMDB/cwallet.sso
-Wallet_ENROLLMENTPLATFORMDB/keystore.jks
-Wallet_ENROLLMENTPLATFORMDB/truststore.jks
+### Oracle wallet y configuracion local (por desarrollador) ###
+Wallet_ENROLLMENTPLATFORMDB/
+wallet.zip

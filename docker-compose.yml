@@ -21,6 +21,8 @@ services:
     environment:
       ORACLE_WALLET_DIR: /app/wallet
       TNS_ADMIN: /app/wallet
+    volumes:
+      - ${ORACLE_WALLET_DIR:-./Wallet_ENROLLMENTPLATFORMDB}:/app/wallet:ro
     restart: always
     depends_on:
       - localstack
