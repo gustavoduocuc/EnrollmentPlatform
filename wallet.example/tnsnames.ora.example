@@ -1,0 +1,15 @@
+# Este archivo es solo documentación. NO lo uses como tnsnames.ora real.
+#
+# Al descargar la Instance Wallet desde OCI Console, Oracle genera tnsnames.ora
+# con alias y hosts de TU instancia. Ejemplo de formato (valores ficticios):
+#
+# mi_basedatos_high = (description= (retry_count=20)(retry_delay=3)
+#   (address=(protocol=tcps)(port=1522)(host=adb.<region>.oraclecloud.com))
+#   (connect_data=(service_name=<ocid>_mi_basedatos_high.adb.oraclecloud.com))
+#   (security=(ssl_server_dn_match=yes)))
+#
+# mi_basedatos_medium = ...
+# mi_basedatos_low = ...
+#
+# En .env usa el alias que necesites:
+#   SPRING_DATASOURCE_URL=jdbc:oracle:thin:@mi_basedatos_high

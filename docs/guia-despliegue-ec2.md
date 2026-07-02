@@ -2,13 +2,15 @@
 
 Despliegue mediante [`.github/workflows/docker-deploy.yml`](../.github/workflows/docker-deploy.yml).
 
+Cada **fork** configura sus propios secrets en GitHub y su propia instancia EC2. La wallet y el `.env` local no se comparten entre desarrolladores.
+
 ## Requisitos previos
 
 - Aplicación operativa en local con `run-prod.sh` o Docker.
-- Wallet Oracle en `Wallet_ENROLLMENTPLATFORMDB/`.
-- Credenciales Oracle en `.env` (mismos valores que se usarán en los secrets).
+- Wallet Oracle descargada de OCI en `Wallet_ENROLLMENTPLATFORMDB/` (local; no está en git).
+- Credenciales Oracle en `.env` (mismos valores que se usarán en los secrets de **tu** fork).
 
-La wallet y el `.env` no se copian al servidor EC2. La wallet se incluye en la imagen durante el build en CI; usuario y contraseña de Oracle se inyectan en el contenedor desde secrets de GitHub.
+La wallet y el `.env` no se copian al servidor EC2. La wallet se incluye en la imagen durante el build en CI (desde el secret `ORACLE_WALLET_BASE64`); usuario y contraseña de Oracle se inyectan en el contenedor desde secrets de GitHub.
 
 ---
 
@@ -50,13 +52,17 @@ No definir `AWS_S3_ENDPOINT` en producción; el SDK usa el endpoint regional de 
 
 ### Generar `ORACLE_WALLET_BASE64`
 
+Usa la wallet de **tu** instancia Oracle (carpeta local `Wallet_ENROLLMENTPLATFORMDB/`):
+
 ```bash
 cd /ruta/a/EnrollmentPlatform
 zip -r wallet.zip Wallet_ENROLLMENTPLATFORMDB
 base64 -i wallet.zip | pbcopy
 ```
 
-Asignar el resultado al secret `ORACLE_WALLET_BASE64`.
+Asignar el resultado al secret `ORACLE_WALLET_BASE64` en **tu** fork.
+
+**Si cambias de instancia Oracle** (nueva BD, otro fork): descarga la wallet nueva, regenera el zip en base64 y actualiza el secret. También actualiza `SPRING_DATASOURCE_URL` con el alias de tu nuevo `tnsnames.ora`.
 
 ### Determinar `USER_SERVER`
 
@@ -133,8 +139,8 @@ Errores de despliegue: revisar el job `build-and-deploy` en **Actions** del repo
 
 | Entorno | Wallet | Credenciales Oracle | S3 |
 | ------- | ------ | --------------------- | --- |
-| Local | `Wallet_ENROLLMENTPLATFORMDB/` | `.env` | `.env` + LocalStack opcional |
-| GitHub | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_*` |
+| Local | `Wallet_ENROLLMENTPLATFORMDB/` (local, no en git) | `.env` personal | `.env` + LocalStack opcional |
+| GitHub (tu fork) | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_*` |
 | EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | Mismas variables S3 en `docker run` |
 
 ---
@@ -150,4 +156,4 @@ docker run -d --name enrollment-platform -p 8080:8080 --env-file .env enrollment
 curl http://localhost:8080/actuator/health
 ```
 
-Ver también [README.md](../README.md) (sección «Producción con Docker»).
+Ver también [README.md](../README.md) (sección «Producción con Docker») y [configuracion-desarrollador.md](configuracion-desarrollador.md) (setup local por dev/fork).
