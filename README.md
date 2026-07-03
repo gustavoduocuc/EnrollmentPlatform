@@ -47,6 +47,16 @@ src/main/resources/
     └── V3__create_enrollment_summary_mq_table.sql # Script Semana 7: Tabla para resúmenes asíncronos MQ
 ```
 
+## Configuración por desarrollador
+
+La wallet Oracle y el archivo `.env` **no se versionan**. Cada desarrollador o fork usa su propia base de datos y secrets.
+
+1. `cp .env.example .env` y completa credenciales.
+2. Descarga tu Instance Wallet desde OCI y colócala en `Wallet_ENROLLMENTPLATFORMDB/` (ver [`wallet.example/`](wallet.example/)).
+3. En `.env`, usa el alias TNS de **tu** `tnsnames.ora` (no el de otro dev).
+
+Guía completa: **[docs/configuracion-desarrollador.md](docs/configuracion-desarrollador.md)**.
+
 ## Ejecutar
 
 **Perfil `local` (H2 + LocalStack S3)**
@@ -61,19 +71,19 @@ docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
 `run-local.sh` fuerza el perfil `local`, exporta credenciales `test`/`test` para LocalStack y **ignora** las variables Oracle de `.env` (si las tienes para prod). Si tienes un `.env` con `SPRING_PROFILES_ACTIVE=prod`, no afecta: este script siempre usa `local`.
 
-**Perfil `prod` (Oracle + wallet mTLS)** — coloca la wallet descargada en `Wallet_ENROLLMENTPLATFORMDB/` (incluye `tnsnames.ora`, `sqlnet.ora`, `ewallet.pem`), crea `.env` y arranca:
+**Perfil `prod` (Oracle + wallet mTLS)** — descarga tu wallet desde OCI (no viene en el repo), colócala en `Wallet_ENROLLMENTPLATFORMDB/`, crea `.env` y arranca:
 
 ```bash
 cp .env.example .env
-# Edita .env: usuario/contraseña de la BD y, si quieres, el alias TNS (por defecto enrollmentplatformdb_high)
+# Edita .env: usuario/contraseña y alias TNS de TU tnsnames.ora (grep '^[a-z]' Wallet_ENROLLMENTPLATFORMDB/tnsnames.ora)
 ./run-prod.sh
 ```
 
 `run-prod.sh` configura `TNS_ADMIN` y `ORACLE_WALLET_DIR` apuntando a la wallet; la URL JDBC usa el alias del `tnsnames.ora` (mTLS, sin pegar el descriptor completo en `.env`).
 
-La wallet debe incluir `cwallet.sso` (y `tnsnames.ora`). El proyecto declara `oraclepki` en el `pom.xml` para que el driver JDBC pueda abrir el keystore SSO (`ORA-17957` / `SSO KeyStore not available` si falta).
+La wallet debe incluir `cwallet.sso` o `ewallet.pem` (y `tnsnames.ora`). El proyecto declara `oraclepki` en el `pom.xml` para que el driver JDBC pueda abrir el keystore SSO (`ORA-17957` / `SSO KeyStore not available` si falta).
 
-Alias típicos: `enrollmentplatformdb_high`, `enrollmentplatformdb_medium`, `enrollmentplatformdb_low`.
+Los alias TNS dependen de tu instancia Oracle (ej. `<nombre_bd>_high`, `_medium`, `_low`). Consulta tu `tnsnames.ora`.
 
 Base URL: `http://localhost:8080`
 
@@ -202,9 +212,11 @@ La imagen usa Java 21, perfil `prod`, wallet Oracle en `/app/wallet` y puerto **
 
 ### Prerrequisitos
 
-- Carpeta `Wallet_ENROLLMENTPLATFORMDB/` completa (incluye `cwallet.sso` o `ewallet.pem`, `tnsnames.ora`, etc.).
+- Wallet Oracle descargada de OCI en `Wallet_ENROLLMENTPLATFORMDB/` (no versionada; ver [`wallet.example/`](wallet.example/)).
 - Archivo `.env` con credenciales Oracle (copia desde `.env.docker.example`).
 - En EC2: Docker instalado, security group con TCP **8080** abierto.
+
+`docker-compose.yml` monta tu wallet local en `/app/wallet` en runtime.
 
 ### Build y ejecución local
 
