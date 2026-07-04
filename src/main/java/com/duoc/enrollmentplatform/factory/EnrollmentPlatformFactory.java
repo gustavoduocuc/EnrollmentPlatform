@@ -11,6 +11,7 @@ import com.duoc.enrollmentplatform.enrollment.application.DeleteEnrollmentUseCas
 import com.duoc.enrollmentplatform.enrollment.application.GetEnrollmentUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.ListEnrollmentsUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.UpdateEnrollmentUseCase;
+import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher; 
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentSummaryPdfRenderer;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentSummaryStorage;
 import com.duoc.enrollmentplatform.enrollment.application.summary.DeleteEnrollmentSummaryUseCase;
@@ -59,14 +60,16 @@ public class EnrollmentPlatformFactory {
         );
     }
 
+    
     public static EnrollmentController createEnrollmentController(
             CourseRepository courseRepository,
             StudentRepository studentRepository,
             EnrollmentRepository enrollmentRepository,
             EnrollmentSummaryGenerator summaryGenerator,
-            EnrollmentSummaryStorage summaryStorage) {
+            EnrollmentSummaryStorage summaryStorage,
+            EnrollmentMessagePublisher messagePublisher) { 
         return new EnrollmentController(
-                new CreateEnrollmentUseCase(courseRepository, studentRepository, enrollmentRepository, summaryGenerator, summaryStorage),
+                new CreateEnrollmentUseCase(courseRepository, studentRepository, enrollmentRepository, summaryGenerator, summaryStorage, messagePublisher), 
                 new ListEnrollmentsUseCase(enrollmentRepository),
                 new GetEnrollmentUseCase(enrollmentRepository),
                 new UpdateEnrollmentUseCase(courseRepository, enrollmentRepository, studentRepository, summaryGenerator, summaryStorage),
