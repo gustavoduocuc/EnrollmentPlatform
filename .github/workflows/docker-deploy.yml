@@ -38,7 +38,6 @@ jobs:
     env:
       IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/enrollment-platform:latest
     steps:
-      # Trae el código del repositorio al runner de GitHub.
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -104,10 +103,9 @@ jobs:
           AZURE_B2C_JWK_SET_URI: ${{ secrets.AZURE_B2C_JWK_SET_URI }}
           AZURE_B2C_AUDIENCE: ${{ secrets.AZURE_B2C_AUDIENCE }}
           ENROLLMENT_SECURITY_LOG_LEVEL: ${{ secrets.ENROLLMENT_SECURITY_LOG_LEVEL }}
-          
         run: |
           # Si no hay secret de URL, usamos el alias high del tnsnames.ora.
-          DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:oracle:thin:@learningplatformvalidation_high}"
+          DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:oracle:thin:@enrollmentplatformdb_high}"
           ssh -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
@@ -137,6 +135,5 @@ jobs:
             -e AZURE_B2C_JWK_SET_URI="${AZURE_B2C_JWK_SET_URI}" \
             -e AZURE_B2C_AUDIENCE="${AZURE_B2C_AUDIENCE}" \
             -e ENROLLMENT_SECURITY_LOG_LEVEL="${ENROLLMENT_SECURITY_LOG_LEVEL:-INFO}" \
-            -e SPRING_RABBITMQ_HOST="172.31.15.18" \
             "${IMAGE}"
           EOF
