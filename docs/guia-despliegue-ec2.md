@@ -92,9 +92,6 @@ Copiar la salida completa al secret. No versionar el archivo `.pem` en el reposi
 - Security group: regla de entrada TCP en el puerto **8080**.
 - Acceso SSH con la llave asociada a `EC2_SSH_KEY`.
 - No desplegar `Wallet_ENROLLMENTPLATFORMDB/` ni `.env` en el servidor.
-- Contenedor de RabbitMQ corriendo. El pipeline no lo inicializa automáticamente, por lo que debe ejecutarse manualmente por única vez en la consola de la instancia:
-  `docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management`
-- Security group: regla de entrada TCP en el puerto **8080** para la aplicación y **15672** para la interfaz web de RabbitMQ.
 
 ---
 
@@ -113,7 +110,7 @@ Secuencia del job `build-and-deploy`:
 1. `./mvnw test`
 2. Build de imagen Docker (wallet desde `ORACLE_WALLET_BASE64`)
 3. Push a `{DOCKERHUB_USERNAME}/enrollment-platform:latest`
-4. SSH a EC2: `docker pull`, recreación del contenedor con variables Oracle y mapeo interno de RabbitMQ mediante `SPRING_RABBITMQ_HOST`.
+4. SSH a EC2: `docker pull`, recreación del contenedor con variables Oracle
 
 ---
 
@@ -140,11 +137,11 @@ Errores de despliegue: revisar el job `build-and-deploy` en **Actions** del repo
 
 ## Resumen
 
-| Entorno | Wallet | Credenciales Oracle | Dependencias Externas |
-| --- | --- | --- | --- |
-| Local | `Wallet_ENROLLMENTPLATFORMDB/` | `.env` | `.env` + LocalStack + RabbitMQ |
-| GitHub | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_*` |
-| EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | Mismas variables S3 en `docker run` + Contenedor manual RabbitMQ |
+| Entorno | Wallet | Credenciales Oracle | S3 |
+| ------- | ------ | --------------------- | --- |
+| Local | `Wallet_ENROLLMENTPLATFORMDB/` (local, no en git) | `.env` personal | `.env` + LocalStack opcional |
+| GitHub (tu fork) | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_*` |
+| EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | Mismas variables S3 en `docker run` |
 
 ---
 
