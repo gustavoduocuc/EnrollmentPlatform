@@ -18,7 +18,7 @@ public class RabbitMQConfiguration {
 
     @Bean
     public Queue queue() {
-        return new Queue(QUEUE_NAME, true); // true = la cola es durable
+        return new Queue(QUEUE_NAME, true); 
     }
 
     @Bean

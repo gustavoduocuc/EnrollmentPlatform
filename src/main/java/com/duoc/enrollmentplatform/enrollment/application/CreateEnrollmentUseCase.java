@@ -21,7 +21,7 @@ public class CreateEnrollmentUseCase {
     private final EnrollmentRepository enrollmentRepository;
     private final EnrollmentSummaryGenerator summaryGenerator;
     private final EnrollmentSummaryStorage summaryStorage;
-    private final EnrollmentMessagePublisher messagePublisher; // NUEVO
+    private final EnrollmentMessagePublisher messagePublisher; 
     private final EnrollmentDtoMapper mapper;
 
     public CreateEnrollmentUseCase(CourseRepository courseRepository,
@@ -29,13 +29,13 @@ public class CreateEnrollmentUseCase {
                                    EnrollmentRepository enrollmentRepository,
                                    EnrollmentSummaryGenerator summaryGenerator,
                                    EnrollmentSummaryStorage summaryStorage,
-                                   EnrollmentMessagePublisher messagePublisher) { // NUEVO
+                                   EnrollmentMessagePublisher messagePublisher) {
         this.courseRepository = courseRepository;
         this.studentRepository = studentRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.summaryGenerator = summaryGenerator;
         this.summaryStorage = summaryStorage;
-        this.messagePublisher = messagePublisher; // NUEVO
+        this.messagePublisher = messagePublisher; 
         this.mapper = new EnrollmentDtoMapper();
     }
 
@@ -57,7 +57,7 @@ public class CreateEnrollmentUseCase {
         String enrollmentId = enrollment.getId().getValue();
         summaryStorage.upload(enrollmentId, summaryGenerator.toJsonBytes(enrollment, student));
 
-        // NUEVO: Enviamos el mensaje a la cola RabbitMQ
+        
         messagePublisher.publish(enrollment);
 
         return mapper.toSummaryDto(enrollment);

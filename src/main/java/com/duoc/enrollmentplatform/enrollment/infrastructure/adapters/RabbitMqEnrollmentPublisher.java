@@ -20,7 +20,7 @@ public class RabbitMqEnrollmentPublisher implements EnrollmentMessagePublisher {
 
     @Override
     public void publish(Enrollment enrollment) {
-        // Preparamos un payload simple en formato JSON
+        
         Map<String, String> payload = new HashMap<>();
         payload.put("enrollmentId", enrollment.getId().getValue());
         payload.put("studentId", enrollment.getStudentId().getValue());

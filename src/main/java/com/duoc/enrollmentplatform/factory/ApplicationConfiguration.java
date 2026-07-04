@@ -55,12 +55,12 @@ public class ApplicationConfiguration {
             EnrollmentRepository enrollmentRepository,
             EnrollmentSummaryGenerator enrollmentSummaryGenerator,
             EnrollmentSummaryStorage enrollmentSummaryStorage,
-            com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher enrollmentMessagePublisher) { // <-- AGREGADO
+            com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher enrollmentMessagePublisher) { 
         
         return EnrollmentPlatformFactory.createEnrollmentController(
                 courseRepository, studentRepository, enrollmentRepository,
                 enrollmentSummaryGenerator, enrollmentSummaryStorage, 
-                enrollmentMessagePublisher); // <-- PASADO A LA FACTORY
+                enrollmentMessagePublisher); 
     }
 
     @Bean

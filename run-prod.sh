@@ -36,5 +36,5 @@ fi
 
 echo "Perfil: ${SPRING_PROFILES_ACTIVE:-prod}"
 echo "Wallet (TNS_ADMIN): ${TNS_ADMIN}"
-echo "JDBC: ${SPRING_DATASOURCE_URL:-jdbc:oracle:thin:@learningplatformvalidation_high}"
+echo "JDBC: ${SPRING_DATASOURCE_URL:-jdbc:oracle:thin:@enrollmentplatformdb_high}"
 ./mvnw spring-boot:run

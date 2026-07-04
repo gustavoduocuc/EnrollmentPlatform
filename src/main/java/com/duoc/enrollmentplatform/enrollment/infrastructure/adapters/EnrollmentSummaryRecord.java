@@ -16,7 +16,7 @@ public class EnrollmentSummaryRecord {
     private String status;
     private LocalDateTime createdAt;
 
-    // Constructor vacío exigido por JPA
+    
     public EnrollmentSummaryRecord() {}
 
     public EnrollmentSummaryRecord(String id, String enrollmentId, String studentId, String status) {
@@ -27,7 +27,7 @@ public class EnrollmentSummaryRecord {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Getters
+    
     public String getId() { return id; }
     public String getEnrollmentId() { return enrollmentId; }
     public String getStudentId() { return studentId; }

@@ -4,7 +4,7 @@ import com.duoc.enrollmentplatform.courses.domain.entities.Course;
 import com.duoc.enrollmentplatform.courses.domain.repositories.InMemoryCourseRepository;
 import com.duoc.enrollmentplatform.enrollment.application.CreateEnrollmentUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.EnrollmentSummaryDTO;
-import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher; // <-- IMPORT AGREGADO
+import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher; 
 import com.duoc.enrollmentplatform.enrollment.application.summary.EnrollmentSummaryGenerator;
 import com.duoc.enrollmentplatform.enrollment.domain.entities.Student;
 import com.duoc.enrollmentplatform.enrollment.domain.repositories.InMemoryEnrollmentRepository;
@@ -42,7 +42,7 @@ class CreateEnrollmentUseCaseTest {
                 new InMemoryEnrollmentRepository(),
                 new EnrollmentSummaryGenerator(),
                 summaryStorage,
-                mock(EnrollmentMessagePublisher.class)); // <-- MOCK INYECTADO AQUÍ
+                mock(EnrollmentMessagePublisher.class));
     }
 
     @Test void createsEnrollmentWithCorrectTotalForMultipleCourses() {
