@@ -9,16 +9,16 @@ Una plataforma educativa necesita gestionar la inscripción de estudiantes a cur
 1. **Consultar cursos disponibles** — `GET /courses` lista todos los cursos con nombre, instructor, duración y costo.
 2. **Agregar cursos** — `POST /courses` incorpora nuevos cursos con persistencia en base de datos.
 3. **Inscribir estudiantes** — `POST /enrollments` inscribe a un estudiante en uno o más cursos y devuelve un resumen con el costo de cada curso y el total a pagar.
+4. **Procesamiento asíncrono** — Al realizar la inscripción, se envía un mensaje a una cola de RabbitMQ. Un consumidor procesa este mensaje en segundo plano y guarda el resumen en una nueva tabla de la base de datos.
 
 ## Requisitos mínimos
 
-
-| Herramienta | Versión mínima                              |
-| ----------- | ------------------------------------------- |
-| Java        | 21                                          |
-| Maven       | 3.9+                                        |
-| Oracle DB   | Solo perfil `prod` (opcional en desarrollo) |
-
+| Herramienta | Versión mínima |
+| --- | --- |
+| Java | 21 |
+| Maven | 3.9+ |
+| RabbitMQ | 3-management (vía Docker) |
+| Oracle DB | Solo perfil `prod` (opcional en desarrollo) |
 
 ## Estructura del proyecto
 
@@ -43,7 +43,8 @@ src/main/resources/
 ├── application-prod.properties     # Oracle Autonomous (variables de entorno)
 └── db/migration/
     ├── V1__schema.sql              # Creación de tablas
-    └── V2__seed_data.sql           # Datos iniciales en español
+    ├── V2__seed_data.sql           # Datos iniciales en español
+    └── V3__create_enrollment_summary_mq_table.sql # Script Semana 7: Tabla para resúmenes asíncronos MQ
 ```
 
 ## Configuración por desarrollador
@@ -64,6 +65,7 @@ Guía completa: **[docs/configuracion-desarrollador.md](docs/configuracion-desar
 docker compose up -d localstack
 docker exec "$(docker ps -qf 'ancestor=localstack/localstack:4.4.0')" \
   awslocal s3 mb s3://enrollment-platform-summaries
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ./run-local.sh
 ```
 
@@ -224,6 +226,7 @@ Los endpoints de `/enrollments` y resúmenes S3 requieren LocalStack y el bucket
 
 ```bash
 docker compose up -d localstack
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 docker exec "$(docker ps -qf 'ancestor=localstack/localstack:4.4.0')" \
   awslocal s3 mb s3://enrollment-platform-summaries
 ```
