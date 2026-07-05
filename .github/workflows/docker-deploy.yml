@@ -1,7 +1,8 @@
 # Construye la imagen Docker, la publica en Docker Hub y despliega en EC2.
 name: Build and Deploy Docker Image
 
-# Se ejecuta al pushear a main o al abrir/actualizar un PR hacia main.
+# Se ejecuta al pushear a main o al abrir/actualizar un PR hacia main o dev.
+# El PR hacia dev permite probar el deploy a PROD antes de integrar a main. (TEMPORALMENTE)
 on:
   push:
     branches:
@@ -9,6 +10,7 @@ on:
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
   # En PR y en push: solo validamos que el proyecto compile y pase los tests (H2).
@@ -30,9 +32,11 @@ jobs:
       - name: Run tests
         run: ./mvnw test
 
-  # Solo en push a main, después de que test pase: imagen + deploy.
+  # Deploy tras pasar test: en push a main, o en PR hacia dev (para probar deploy a PROD). (TEMPORALMENTE)
   build-and-deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'dev')
     needs: test
     runs-on: ubuntu-latest
     env:
