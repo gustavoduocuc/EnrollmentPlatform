@@ -71,13 +71,21 @@ docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
 `run-local.sh` fuerza el perfil `local`, exporta credenciales `test`/`test` para LocalStack y **ignora** las variables Oracle de `.env` (si las tienes para prod). Si tienes un `.env` con `SPRING_PROFILES_ACTIVE=prod`, no afecta: este script siempre usa `local`.
 
-**Perfil `prod` (Oracle + wallet mTLS)** — descarga tu wallet desde OCI (no viene en el repo), colócala en `Wallet_ENROLLMENTPLATFORMDB/`, crea `.env` y arranca:
+**Perfil `prod` (Oracle + wallet mTLS + RabbitMQ)** — descarga tu wallet desde OCI, configura `.env` y levanta dependencias:
 
 ```bash
 cp .env.example .env
-# Edita .env: usuario/contraseña y alias TNS de TU tnsnames.ora (grep '^[a-z]' Wallet_ENROLLMENTPLATFORMDB/tnsnames.ora)
+# Edita .env: usuario/contraseña, alias TNS y RABBITMQ_HOST=localhost
+
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+docker compose up -d localstack
+docker exec "$(docker ps -qf 'ancestor=localstack/localstack:4.4.0')" \
+  awslocal s3 mb s3://enrollment-platform-summaries
+
 ./run-prod.sh
 ```
+
+Guía del flujo asíncrono y verificación en Oracle: **[docs/procesamiento-asincrono-mq.md](docs/procesamiento-asincrono-mq.md)**.
 
 `run-prod.sh` configura `TNS_ADMIN` y `ORACLE_WALLET_DIR` apuntando a la wallet; la URL JDBC usa el alias del `tnsnames.ora` (mTLS, sin pegar el descriptor completo en `.env`).
 
@@ -91,7 +99,7 @@ Base URL: `http://localhost:8080`
 | ------ | ---------------------------------------- | ---------------------------------------- |
 | GET    | `/courses`                               | Lista cursos                             |
 | POST   | `/courses`                               | Crea curso                               |
-| POST   | `/enrollments`                           | Inscribe estudiante (sube resumen a S3)  |
+| POST   | `/enrollments`                           | Inscribe estudiante (S3 + mensaje RabbitMQ) |
 | GET    | `/enrollments`                           | Lista inscripciones                      |
 | GET    | `/enrollments/{id}`                      | Obtiene inscripción                      |
 | PUT    | `/enrollments/{id}`                      | Actualiza cursos de la inscripción       |
@@ -107,7 +115,9 @@ Base URL: `http://localhost:8080`
 
 Los resúmenes se guardan en S3 como `{enrollmentId}/summary.json`. Detalle en [docs/almacenamiento-s3-resumenes.md](docs/almacenamiento-s3-resumenes.md).
 
-Variables mínimas: `AWS_REGION`, `AWS_S3_BUCKET`; en local con LocalStack también `AWS_S3_ENDPOINT` (ver `.env.example`).
+Variables mínimas: `AWS_REGION`, `AWS_S3_BUCKET`; en local con LocalStack también `AWS_S3_ENDPOINT`; para inscripciones también `RABBITMQ_*` (ver `.env.example`).
+
+Detalle RabbitMQ: **[docs/procesamiento-asincrono-mq.md](docs/procesamiento-asincrono-mq.md)**.
 
 ## Ejecutar tests
 
@@ -134,6 +144,8 @@ curl -X POST http://localhost:8080/enrollments \
   -H "Content-Type: application/json" \
   -d '{"studentId": "s-001", "courseIds": ["c-001", "c-002"]}'
 ```
+
+Verificar MQ (Oracle): `SELECT * FROM enrollment_summary_mq;` — ver [docs/procesamiento-asincrono-mq.md](docs/procesamiento-asincrono-mq.md).
 
 ## Contratos HTTP
 
@@ -213,7 +225,8 @@ La imagen usa Java 21, perfil `prod`, wallet Oracle en `/app/wallet` y puerto **
 ### Prerrequisitos
 
 - Wallet Oracle descargada de OCI en `Wallet_ENROLLMENTPLATFORMDB/` (no versionada; ver [`wallet.example/`](wallet.example/)).
-- Archivo `.env` con credenciales Oracle (copia desde `.env.docker.example`).
+- Archivo `.env` con credenciales Oracle y RabbitMQ (copia desde `.env.docker.example`).
+- RabbitMQ y LocalStack levantados (`docker compose up -d localstack rabbitmq`).
 - En EC2: Docker instalado, security group con TCP **8080** abierto.
 
 `docker-compose.yml` monta tu wallet local en `/app/wallet` en runtime.
@@ -235,9 +248,10 @@ docker exec "$(docker ps -qf 'ancestor=localstack/localstack:4.4.0')" \
 
 ```bash
 cp .env.docker.example .env
-# Edita .env: usuario/contraseña Oracle y variables AWS.
-# Con Docker Compose (misma red que localstack):
+# Edita .env: usuario/contraseña Oracle, AWS y RABBITMQ_HOST=rabbitmq
+# Con Docker Compose (misma red que localstack y rabbitmq):
 #   AWS_S3_ENDPOINT=http://localstack:4566
+#   RABBITMQ_HOST=rabbitmq
 #   AWS_ACCESS_KEY_ID=test
 #   AWS_SECRET_ACCESS_KEY=test
 #   AWS_S3_BUCKET=enrollment-platform-summaries
