@@ -37,8 +37,26 @@ Configurar en **Settings → Secrets and variables → Actions**:
 | `ENROLLMENT_SECURITY_JWT_ENABLED` | Opcional. `true` activa JWT en Spring; default: `false` |
 | `AZURE_B2C_JWK_SET_URI` | Requerido si JWT Spring activo. URL JWK set de Azure AD B2C |
 | `AZURE_B2C_AUDIENCE` | Requerido si JWT Spring activo. Client ID de la app en Azure |
+| `ENROLLMENT_SECURITY_LOG_LEVEL` | Opcional. Nivel de log de Spring Security; default: `INFO` |
+| `SPRING_RABBITMQ_HOST` | IP privada de EC2 donde corre RabbitMQ (ej. `172.31.x.x`). Ver [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md) |
 
 Detalle de las capas de seguridad (Gateway vs Spring): [seguridad-jwt.md](seguridad-jwt.md).
+
+### RabbitMQ en EC2
+
+El pipeline **no** levanta RabbitMQ. Debe estar corriendo en la instancia antes del deploy:
+
+```bash
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+```
+
+Obtener la IP privada de la instancia (valor típico de `SPRING_RABBITMQ_HOST`):
+
+```bash
+curl -s http://169.254.169.254/latest/meta-data/local-ipv4
+```
+
+La app en Docker se conecta a RabbitMQ usando esa IP. Guía completa: [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
 
 ### S3 en producción
 
@@ -92,9 +110,8 @@ Copiar la salida completa al secret. No versionar el archivo `.pem` en el reposi
 - Security group: regla de entrada TCP en el puerto **8080**.
 - Acceso SSH con la llave asociada a `EC2_SSH_KEY`.
 - No desplegar `Wallet_ENROLLMENTPLATFORMDB/` ni `.env` en el servidor.
-- Contenedor de RabbitMQ corriendo. El pipeline no lo inicializa automáticamente, por lo que debe ejecutarse manualmente por única vez en la consola de la instancia:
-  `docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management`
-- Security group: regla de entrada TCP en el puerto **8080** para la aplicación y **15672** para la interfaz web de RabbitMQ.
+- Contenedor de RabbitMQ corriendo (ver sección [RabbitMQ en EC2](#rabbitmq-en-ec2) arriba).
+- Security group: regla de entrada TCP en el puerto **8080** para la aplicación y **15672** (opcional) para la consola web de RabbitMQ.
 
 ---
 
@@ -136,6 +153,24 @@ Authorization: Bearer <access_token>
 
 Errores de despliegue: revisar el job `build-and-deploy` en **Actions** del repositorio.
 
+### Verificar procesamiento asíncrono (RabbitMQ)
+
+Tras crear una inscripción en EC2:
+
+```bash
+curl -X POST http://<IP_EC2>:8080/enrollments \
+  -H "Content-Type: application/json" \
+  -d '{"studentId": "s-001", "courseIds": ["c-001", "c-002"]}'
+```
+
+En Oracle (SQL Developer / Database Actions):
+
+```sql
+SELECT * FROM enrollment_summary_mq ORDER BY created_at DESC;
+```
+
+Debe aparecer un registro con `status = 'CREATED'`. Más detalle: [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
+
 ---
 
 ## Resumen
@@ -143,8 +178,8 @@ Errores de despliegue: revisar el job `build-and-deploy` en **Actions** del repo
 | Entorno | Wallet | Credenciales Oracle | Dependencias Externas |
 | --- | --- | --- | --- |
 | Local | `Wallet_ENROLLMENTPLATFORMDB/` | `.env` | `.env` + LocalStack + RabbitMQ |
-| GitHub | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_*` |
-| EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | Mismas variables S3 en `docker run` + Contenedor manual RabbitMQ |
+| GitHub | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_*`, `SPRING_RABBITMQ_HOST` |
+| EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | S3 + contenedor RabbitMQ manual |
 
 ---
 
@@ -159,4 +194,4 @@ docker run -d --name enrollment-platform -p 8080:8080 --env-file .env enrollment
 curl http://localhost:8080/actuator/health
 ```
 
-Ver también [README.md](../README.md) (sección «Producción con Docker») y [configuracion-desarrollador.md](configuracion-desarrollador.md) (setup local por dev/fork).
+Ver también [README.md](../README.md) (sección «Producción con Docker»), [configuracion-desarrollador.md](configuracion-desarrollador.md) (setup local) y [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md) (RabbitMQ).

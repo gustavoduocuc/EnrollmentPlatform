@@ -9,10 +9,11 @@ Cada desarrollador o fork trabaja con **su propia** base de datos Oracle y secre
 1. Clonar el repositorio.
 2. Copiar plantilla de entorno: `cp .env.example .env`
 3. Descargar tu Instance Wallet desde OCI Console (ver sección [Wallet Oracle](#wallet-oracle)).
-4. Completar `.env` con usuario, contraseña y alias TNS de **tu** instancia.
-5. Para desarrollo sin Oracle: `./run-local.sh` (H2 en memoria).
-6. Para probar contra Oracle: `./run-prod.sh`.
-7. Si despliegas tu fork a EC2: configurar secrets en GitHub Actions ([guia-despliegue-ec2.md](guia-despliegue-ec2.md)).
+4. Completar `.env` con usuario, contraseña, alias TNS de **tu** instancia y variables RabbitMQ.
+5. Levantar RabbitMQ y LocalStack (ver [Procesamiento asíncrono MQ](procesamiento-asincrono-mq.md)).
+6. Para desarrollo sin Oracle: `./run-local.sh` (H2 en memoria).
+7. Para probar contra Oracle: `./run-prod.sh`.
+8. Si despliegas tu fork a EC2: configurar secrets en GitHub Actions ([guia-despliegue-ec2.md](guia-despliegue-ec2.md)).
 
 ---
 
@@ -85,8 +86,38 @@ Variables clave para perfil `prod`:
 | `SPRING_DATASOURCE_USERNAME` | Usuario de tu BD |
 | `SPRING_DATASOURCE_PASSWORD` | Contraseña de tu BD |
 | `ORACLE_WALLET_DIR` | Opcional; ruta a tu wallet |
+| `RABBITMQ_HOST` | `localhost` (app nativa) o `rabbitmq` (Docker Compose) |
+| `RABBITMQ_PORT` | `5672` (default) |
+| `RABBITMQ_USER` / `RABBITMQ_PASS` | Credenciales RabbitMQ (default: `guest` / `guest`) |
 
-Para Docker local, usa `.env.docker.example` como base.
+Para Docker local, usa `.env.docker.example` como base (incluye `RABBITMQ_HOST=rabbitmq`).
+
+Guía de prueba del flujo MQ: [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
+
+---
+
+## RabbitMQ (requerido para inscripciones)
+
+`POST /enrollments` publica un mensaje en RabbitMQ. Sin RabbitMQ levantado, la inscripción puede fallar.
+
+**Levantar RabbitMQ (local nativo):**
+
+```bash
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+```
+
+Consola web: http://localhost:15672 (`guest` / `guest`).
+
+En `.env` para `./run-prod.sh` o `./run-local.sh`:
+
+```bash
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_USER=guest
+RABBITMQ_PASS=guest
+```
+
+Con **Docker Compose**, usa `RABBITMQ_HOST=rabbitmq` (ver `.env.docker.example`).
 
 ---
 
@@ -109,6 +140,8 @@ Estos paths están en `.gitignore`. Si git te pide commitear cambios en la walle
 | ------ | ------ | ------------- | ------------- |
 | `./run-local.sh` | `local` | H2 en memoria | No requerida (ignora vars Oracle del `.env`) |
 | `./run-prod.sh` | `prod` (o valor en `.env`) | Oracle Autonomous | Requerida |
+
+Ambos scripts requieren **RabbitMQ** levantado para `POST /enrollments`. Ver [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
 
 `run-prod.sh` valida que existan `tnsnames.ora` y `cwallet.sso`/`ewallet.pem` antes de arrancar.
 
@@ -145,6 +178,7 @@ Cada fork con despliegue a EC2 configura **sus propios** secrets en **Settings �
 - `ORACLE_WALLET_BASE64` — zip de **tu** `Wallet_ENROLLMENTPLATFORMDB/` en base64
 - `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`
 - `SPRING_DATASOURCE_URL` — alias de **tu** `tnsnames.ora`
+- `SPRING_RABBITMQ_HOST` — IP privada de EC2 donde corre RabbitMQ (ver [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md))
 - AWS, Docker Hub, EC2, JWT Azure (ver tabla completa en [guia-despliegue-ec2.md](guia-despliegue-ec2.md))
 
 Si cambias de instancia Oracle, regenera `ORACLE_WALLET_BASE64`:
@@ -171,5 +205,6 @@ Tras `git pull`:
 ## Referencias
 
 - [README.md](../README.md) — ejecución y endpoints
+- [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md) — RabbitMQ y prueba del flujo asíncrono
 - [guia-despliegue-ec2.md](guia-despliegue-ec2.md) — CI/CD y secrets
 - [wallet.example/README.md](../wallet.example/README.md) — plantilla de wallet
