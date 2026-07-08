@@ -120,21 +120,26 @@ En `.env` para Compose, `RABBITMQ_HOST` debe ser `rabbitmq` (no `localhost`).
 
 ## Despliegue en EC2
 
-RabbitMQ **no** se levanta automáticamente en el pipeline. En la instancia EC2:
+El pipeline de GitHub Actions **levanta RabbitMQ automáticamente** en cada deploy:
+
+- Crea la red Docker `enrollment-net` (si no existe).
+- Levanta el contenedor `rabbitmq:3-management` con `--restart unless-stopped`.
+- Conecta la app en la misma red con `RABBITMQ_HOST=rabbitmq`.
+
+No hace falta `docker run` manual ni secret `SPRING_RABBITMQ_HOST`.
+
+**Verificación post-deploy:**
 
 ```bash
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+curl http://<IP_EC2>:8080/actuator/health
+curl -X POST http://<IP_EC2>:8080/enrollments \
+  -H "Content-Type: application/json" \
+  -d '{"studentId": "s-001", "courseIds": ["c-001", "c-002"]}'
 ```
 
-Configura el secret de GitHub **`SPRING_RABBITMQ_HOST`** con la IP privada de la instancia EC2 (ej. `172.31.x.x`). La app en Docker se conecta a RabbitMQ vía esa IP.
+Consola web opcional: `http://<IP_EC2>:15672` (guest/guest). Requiere puerto **15672** abierto en el security group.
 
-Obtener IP privada en EC2:
-
-```bash
-curl -s http://169.254.169.254/latest/meta-data/local-ipv4
-```
-
-Detalle de secrets: [guia-despliegue-ec2.md](guia-despliegue-ec2.md).
+Detalle de secrets y deploy: [guia-despliegue-ec2.md](guia-despliegue-ec2.md).
 
 ---
 
