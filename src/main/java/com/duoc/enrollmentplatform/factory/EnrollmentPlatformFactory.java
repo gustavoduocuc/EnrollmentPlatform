@@ -1,7 +1,10 @@
 package com.duoc.enrollmentplatform.factory;
 
+import com.duoc.enrollmentplatform.courses.application.ActiveTeacherLookup;
 import com.duoc.enrollmentplatform.courses.application.CreateCourseUseCase;
+import com.duoc.enrollmentplatform.courses.application.DeleteCourseUseCase;
 import com.duoc.enrollmentplatform.courses.application.ListCoursesUseCase;
+import com.duoc.enrollmentplatform.courses.application.UpdateCourseUseCase;
 import com.duoc.enrollmentplatform.courses.domain.repositories.CourseRepository;
 import com.duoc.enrollmentplatform.courses.infrastructure.adapters.CourseStore;
 import com.duoc.enrollmentplatform.courses.infrastructure.adapters.JpaCourseRepository;
@@ -67,10 +70,16 @@ public class EnrollmentPlatformFactory {
         return new OpenPdfEnrollmentSummaryRenderer();
     }
 
-    public static CourseController createCourseController(CourseRepository courseRepository) {
+    public static CourseController createCourseController(
+            CourseRepository courseRepository,
+            UserRepository userRepository,
+            EnrollmentRepository enrollmentRepository) {
         return new CourseController(
-                new ListCoursesUseCase(courseRepository),
-                new CreateCourseUseCase(courseRepository)
+                new ListCoursesUseCase(courseRepository, userRepository),
+                new CreateCourseUseCase(courseRepository, new ActiveTeacherLookup(userRepository)),
+                new UpdateCourseUseCase(
+                        courseRepository, userRepository, new ActiveTeacherLookup(userRepository)),
+                new DeleteCourseUseCase(courseRepository, enrollmentRepository)
         );
     }
 

@@ -2,6 +2,7 @@ package com.duoc.enrollmentplatform.enrollment.tests.unit;
 
 import com.duoc.enrollmentplatform.courses.domain.entities.Course;
 import com.duoc.enrollmentplatform.courses.domain.repositories.InMemoryCourseRepository;
+import com.duoc.enrollmentplatform.courses.domain.valueobjects.Section;
 import com.duoc.enrollmentplatform.enrollment.application.CreateEnrollmentUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.EnrollmentSummaryDTO;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher;
@@ -31,8 +32,20 @@ class UpdateEnrollmentUseCaseTest {
         InMemoryEnrollmentSummaryStorage storage = new InMemoryEnrollmentSummaryStorage();
         EnrollmentSummaryGenerator generator = new EnrollmentSummaryGenerator();
         InMemoryCourseRepository courses = new InMemoryCourseRepository(List.of(
-                Course.create(Id.create("c-1"), "Intro", "A", 10, Money.create(150000)),
-                Course.create(Id.create("c-2"), "DB", "B", 10, Money.create(120000))));
+                Course.create(
+                        Id.create("c-1"),
+                        "Intro",
+                        Id.create("u-teacher-001"),
+                        Section.create("A"),
+                        10,
+                        Money.create(150000)),
+                Course.create(
+                        Id.create("c-2"),
+                        "DB",
+                        Id.create("u-teacher-001"),
+                        Section.create("B"),
+                        10,
+                        Money.create(120000))));
         InMemoryUserRepository users = new InMemoryUserRepository(List.of(
                 User.reconstitute(
                         Id.create("u-1"),

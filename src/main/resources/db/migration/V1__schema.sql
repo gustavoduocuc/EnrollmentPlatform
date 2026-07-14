@@ -1,12 +1,3 @@
-CREATE TABLE courses (
-    id            VARCHAR(36)    NOT NULL,
-    name          VARCHAR(255)   NOT NULL,
-    instructor    VARCHAR(255)   NOT NULL,
-    duration_hours INT           NOT NULL,
-    price         DECIMAL(15, 2) NOT NULL,
-    CONSTRAINT pk_courses PRIMARY KEY (id)
-);
-
 CREATE TABLE users (
     id          VARCHAR(36)  NOT NULL,
     email       VARCHAR(255) NOT NULL,
@@ -17,6 +8,18 @@ CREATE TABLE users (
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uk_users_email UNIQUE (email),
     CONSTRAINT uk_users_student_id UNIQUE (student_id)
+);
+
+CREATE TABLE courses (
+    id             VARCHAR(36)    NOT NULL,
+    name           VARCHAR(255)   NOT NULL,
+    instructor_id  VARCHAR(36)    NOT NULL,
+    section        CHAR(1)        NOT NULL,
+    duration_hours INT            NOT NULL,
+    price          DECIMAL(15, 2) NOT NULL,
+    CONSTRAINT pk_courses PRIMARY KEY (id),
+    CONSTRAINT fk_courses_instructor FOREIGN KEY (instructor_id) REFERENCES users (id),
+    CONSTRAINT uk_courses_name_section UNIQUE (name, section)
 );
 
 CREATE TABLE enrollments (

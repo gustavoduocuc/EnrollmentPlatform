@@ -61,6 +61,15 @@ public class User {
         this.fullName = fullName;
     }
 
+    public void requireActiveTeacher() {
+        if (role != Role.TEACHER) {
+            throw DomainError.validation("User " + id.getValue() + " is not a TEACHER");
+        }
+        if (status != UserStatus.ACTIVE) {
+            throw DomainError.validation("Teacher " + id.getValue() + " is not ACTIVE");
+        }
+    }
+
     public Id getId() {
         return id;
     }

@@ -51,8 +51,12 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    public CourseController courseController(CourseRepository courseRepository) {
-        return EnrollmentPlatformFactory.createCourseController(courseRepository);
+    public CourseController courseController(
+            CourseRepository courseRepository,
+            UserRepository userRepository,
+            EnrollmentRepository enrollmentRepository) {
+        return EnrollmentPlatformFactory.createCourseController(
+                courseRepository, userRepository, enrollmentRepository);
     }
 
     @Bean

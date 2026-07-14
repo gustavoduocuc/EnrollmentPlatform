@@ -12,4 +12,11 @@ public class InMemoryEnrollmentRepository implements EnrollmentRepository {
     @Override public Optional<Enrollment> findById(Id id) { return Optional.ofNullable(enrollments.get(id.getValue())); }
     @Override public List<Enrollment> findAll() { return List.copyOf(enrollments.values()); }
     @Override public void deleteById(Id id) { enrollments.remove(id.getValue()); }
+
+    @Override
+    public boolean existsByCourseId(Id courseId) {
+        return enrollments.values().stream()
+                .flatMap(enrollment -> enrollment.getLines().stream())
+                .anyMatch(line -> line.getCourseId().equals(courseId));
+    }
 }

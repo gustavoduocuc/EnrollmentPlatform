@@ -27,8 +27,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -95,7 +97,7 @@ class SecurityConfigurationEnabledE2ETest {
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_STUDENT")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Cloud","instructor":"Ana","durationHours":10,"price":1000}
+                                {"name":"Cloud","section":"H","instructorId":"u-teacher-001","durationHours":10,"price":1000}
                                 """))
                 .andExpect(status().isForbidden());
     }
@@ -106,9 +108,27 @@ class SecurityConfigurationEnabledE2ETest {
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Cloud","instructor":"Ana","durationHours":10,"price":1000}
+                                {"name":"Cloud Admin","section":"I","instructorId":"u-teacher-001","durationHours":10,"price":1000}
                                 """))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void doesNotAllowStudentToUpdateCourses() throws Exception {
+        mockMvc.perform(put("/courses/c-001")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_STUDENT")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Hack"}
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void doesNotAllowStudentToDeleteCourses() throws Exception {
+        mockMvc.perform(delete("/courses/c-001")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_STUDENT"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

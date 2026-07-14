@@ -38,6 +38,11 @@ public class JpaEnrollmentRepository implements EnrollmentRepository {
         store.deleteById(id.getValue());
     }
 
+    @Override
+    public boolean existsByCourseId(Id courseId) {
+        return store.existsByCourseId(courseId.getValue());
+    }
+
     private Enrollment toDomain(EnrollmentRecord r) {
         List<EnrollmentLine> lines = r.lines.stream()
                 .map(l -> EnrollmentLine.create(Id.create(l.id), Id.create(l.courseId),

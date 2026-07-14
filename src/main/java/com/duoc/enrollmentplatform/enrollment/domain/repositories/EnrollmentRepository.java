@@ -10,4 +10,5 @@ public interface EnrollmentRepository {
     Optional<Enrollment> findById(Id id);
     List<Enrollment> findAll();
     void deleteById(Id id);
+    boolean existsByCourseId(Id courseId);
 }

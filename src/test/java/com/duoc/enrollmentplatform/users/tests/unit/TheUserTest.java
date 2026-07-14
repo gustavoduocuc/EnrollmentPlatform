@@ -104,6 +104,49 @@ class TheUserTest {
         assertEquals(DomainError.Type.VALIDATION, error.getType());
     }
 
+    @Test
+    void allowsActiveTeacherToBeAssignedAsInstructor() {
+        User teacher = User.reconstitute(
+                Id.create("u-teacher-001"),
+                Email.create("maria.gonzalez@duoc.cl"),
+                "María González",
+                null,
+                Role.TEACHER,
+                UserStatus.ACTIVE);
+
+        teacher.requireActiveTeacher();
+    }
+
+    @Test
+    void doesNotAllowStudentToBeAssignedAsInstructor() {
+        User student = User.reconstitute(
+                Id.create("u-001"),
+                Email.create("juan.soto@duoc.cl"),
+                "Juan Soto",
+                Id.create("s-001"),
+                Role.STUDENT,
+                UserStatus.ACTIVE);
+
+        DomainError error = assertThrows(DomainError.class, student::requireActiveTeacher);
+
+        assertEquals(DomainError.Type.VALIDATION, error.getType());
+    }
+
+    @Test
+    void doesNotAllowPendingTeacherToBeAssignedAsInstructor() {
+        User teacher = User.reconstitute(
+                Id.create("u-teacher-002"),
+                Email.create("pending@duoc.cl"),
+                null,
+                null,
+                Role.TEACHER,
+                UserStatus.PENDING);
+
+        DomainError error = assertThrows(DomainError.class, teacher::requireActiveTeacher);
+
+        assertEquals(DomainError.Type.VALIDATION, error.getType());
+    }
+
     private User pendingStudent(String email) {
         return User.preRegister(Email.create(email), Role.STUDENT);
     }

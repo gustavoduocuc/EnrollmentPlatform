@@ -2,6 +2,7 @@ package com.duoc.enrollmentplatform.enrollment.tests.unit;
 
 import com.duoc.enrollmentplatform.courses.domain.entities.Course;
 import com.duoc.enrollmentplatform.courses.domain.repositories.InMemoryCourseRepository;
+import com.duoc.enrollmentplatform.courses.domain.valueobjects.Section;
 import com.duoc.enrollmentplatform.enrollment.application.CreateEnrollmentUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.EnrollmentSummaryDTO;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher;
@@ -31,8 +32,20 @@ class CreateEnrollmentUseCaseTest {
     private InMemoryEnrollmentSummaryStorage summaryStorage;
 
     @BeforeEach void setup() {
-        javaIntro = Course.create(Id.create("c-1"), "Introducción a Java", "María González", 40, Money.create(150000));
-        databases = Course.create(Id.create("c-2"), "Bases de datos", "Carlos Pérez", 30, Money.create(120000));
+        javaIntro = Course.create(
+                Id.create("c-1"),
+                "Introducción a Java",
+                Id.create("u-teacher-001"),
+                Section.create("A"),
+                40,
+                Money.create(150000));
+        databases = Course.create(
+                Id.create("c-2"),
+                "Bases de datos",
+                Id.create("u-teacher-001"),
+                Section.create("B"),
+                30,
+                Money.create(120000));
         student = User.reconstitute(
                 Id.create("u-1"),
                 Email.create("juan.soto@duoc.cl"),
