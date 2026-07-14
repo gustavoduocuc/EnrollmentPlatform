@@ -7,12 +7,16 @@ CREATE TABLE courses (
     CONSTRAINT pk_courses PRIMARY KEY (id)
 );
 
-CREATE TABLE students (
-    id        VARCHAR(36)  NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    email     VARCHAR(255) NOT NULL,
-    CONSTRAINT pk_students    PRIMARY KEY (id),
-    CONSTRAINT uk_students_email UNIQUE (email)
+CREATE TABLE users (
+    id          VARCHAR(36)  NOT NULL,
+    email       VARCHAR(255) NOT NULL,
+    full_name   VARCHAR(255),
+    student_id  VARCHAR(36),
+    role        VARCHAR(20)  NOT NULL,
+    status      VARCHAR(20)  NOT NULL,
+    CONSTRAINT pk_users PRIMARY KEY (id),
+    CONSTRAINT uk_users_email UNIQUE (email),
+    CONSTRAINT uk_users_student_id UNIQUE (student_id)
 );
 
 CREATE TABLE enrollments (
@@ -20,8 +24,8 @@ CREATE TABLE enrollments (
     student_id   VARCHAR(36)    NOT NULL,
     enrolled_at  TIMESTAMP      NOT NULL,
     total_amount DECIMAL(15, 2) NOT NULL,
-    CONSTRAINT pk_enrollments       PRIMARY KEY (id),
-    CONSTRAINT fk_enrollments_student FOREIGN KEY (student_id) REFERENCES students (id)
+    CONSTRAINT pk_enrollments PRIMARY KEY (id),
+    CONSTRAINT fk_enrollments_student FOREIGN KEY (student_id) REFERENCES users (student_id)
 );
 
 CREATE TABLE enrollment_lines (

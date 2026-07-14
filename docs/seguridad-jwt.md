@@ -286,3 +286,40 @@ AZURE_B2C_AUDIENCE=21bae56f-a579-4687-a0e8-b1f341d8d881 \
 | Gateway | Invoke URL `/dev/courses` | false | Bearer válido | 200 |
 | Gateway + Spring | Invoke URL | true | Bearer válido | 200 |
 | Gateway + Spring | Invoke URL | true | sin token | 401 |
+
+---
+
+## Usuarios, roles y flujo de acceso
+
+El módulo `users` gestiona identidad local (email, rol, `studentId`) aparte del token de Azure AD.
+
+### Ciclo de vida
+
+1. **Pre-registro (ADMIN)** — `POST /users/pre-registrations` con `{ "email", "role?" }`. Crea usuario `PENDING`. Si el rol es `STUDENT`, genera `studentId` automáticamente.
+2. **Registro** — `POST /users/registrations` con `{ "email", "fullName" }`. Completa el nombre, provisiona el usuario en el tenant IDaaS (adapter actual: no-op local) y pasa a `ACTIVE`.
+3. **Login** — `POST /users/login` con `{ "email" }`. Verifica que el usuario esté `ACTIVE` y responde `{ ready, email, role }`. El JWT lo emite Azure AD; el backend no genera tokens.
+4. **API protegida** — Con JWT activo, el claim `email` / `preferred_username` se mapea al `role` local (`ROLE_STUDENT`, `ROLE_TEACHER`, `ROLE_ADMIN`).
+
+### Endpoints y autorización (JWT ON)
+
+| Endpoint | Acceso |
+| -------- | ------ |
+| `POST /users/registrations`, `POST /users/login` | Público |
+| `/h2-console/**` | Público (útil en local con JWT ON) |
+| `POST /users/pre-registrations`, CRUD `/users` | `ROLE_ADMIN` |
+| `GET /courses` | `ROLE_STUDENT`, `ROLE_TEACHER`, `ROLE_ADMIN` |
+| `POST /courses` | `ROLE_ADMIN` |
+| `GET /enrollments`, `GET /enrollments/**` (incluye summaries lectura) | `ROLE_STUDENT`, `ROLE_TEACHER`, `ROLE_ADMIN` |
+| `POST /enrollments` | `ROLE_STUDENT`, `ROLE_ADMIN` |
+| `PUT` / `DELETE` `/enrollments/**` | `ROLE_STUDENT`, `ROLE_ADMIN` |
+| `POST` / `PUT` / `DELETE` `/enrollments/*/summary` | `ROLE_STUDENT`, `ROLE_ADMIN` |
+| Cualquier otra ruta | Denegado |
+
+### Enrollments y `studentId`
+
+`POST /enrollments` sigue usando `studentId` (campo de negocio en `users.student_id`), no el UUID primario del usuario.
+
+### Migración de schema
+
+Se reemplazó la tabla `students` por `users` en `V1`/`V2`. En entornos que ya aplicaron migraciones previas, hay que resetear el schema / historial Flyway (no hay datos reales de producción).
+

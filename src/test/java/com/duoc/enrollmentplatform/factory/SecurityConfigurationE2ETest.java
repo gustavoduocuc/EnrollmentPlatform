@@ -1,6 +1,7 @@
 package com.duoc.enrollmentplatform.factory;
 
 import com.duoc.enrollmentplatform.EnrollmentPlatformApplication;
+import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -21,9 +24,11 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -54,7 +59,10 @@ class SecurityConfigurationDisabledE2ETest {
         "spring.main.allow-bean-definition-overriding=true"
 })
 @ActiveProfiles("local")
-@Import(SecurityConfigurationEnabledE2ETest.TestJwtDecoderConfiguration.class)
+@Import({
+        SecurityConfigurationEnabledE2ETest.TestJwtDecoderConfiguration.class,
+        SecurityConfigurationEnabledE2ETest.MockMessagingConfiguration.class
+})
 class SecurityConfigurationEnabledE2ETest {
 
     @Autowired
@@ -76,8 +84,58 @@ class SecurityConfigurationEnabledE2ETest {
     }
 
     @Test
-    void allowsRequestWithJwt() throws Exception {
-        mockMvc.perform(get("/courses").with(jwt()))
+    void allowsStudentToListCourses() throws Exception {
+        mockMvc.perform(get("/courses").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_STUDENT"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void doesNotAllowStudentToCreateCourses() throws Exception {
+        mockMvc.perform(post("/courses")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_STUDENT")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Cloud","instructor":"Ana","durationHours":10,"price":1000}
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void allowsAdminToCreateCourses() throws Exception {
+        mockMvc.perform(post("/courses")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Cloud","instructor":"Ana","durationHours":10,"price":1000}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void allowsStudentToCreateEnrollment() throws Exception {
+        mockMvc.perform(post("/enrollments")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_STUDENT")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"studentId":"s-001","courseIds":["c-001"]}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void doesNotAllowTeacherToCreateEnrollment() throws Exception {
+        mockMvc.perform(post("/enrollments")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_TEACHER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"studentId":"s-001","courseIds":["c-001"]}
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void allowsTeacherToListEnrollments() throws Exception {
+        mockMvc.perform(get("/enrollments").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_TEACHER"))))
                 .andExpect(status().isOk());
     }
 
@@ -94,6 +152,16 @@ class SecurityConfigurationEnabledE2ETest {
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build();
+        }
+    }
+
+    @TestConfiguration
+    static class MockMessagingConfiguration {
+
+        @Bean
+        @Primary
+        EnrollmentMessagePublisher enrollmentMessagePublisher() {
+            return mock(EnrollmentMessagePublisher.class);
         }
     }
 }

@@ -11,7 +11,7 @@ import com.duoc.enrollmentplatform.enrollment.application.DeleteEnrollmentUseCas
 import com.duoc.enrollmentplatform.enrollment.application.GetEnrollmentUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.ListEnrollmentsUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.UpdateEnrollmentUseCase;
-import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher; 
+import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentSummaryPdfRenderer;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentSummaryStorage;
 import com.duoc.enrollmentplatform.enrollment.application.summary.DeleteEnrollmentSummaryUseCase;
@@ -22,14 +22,24 @@ import com.duoc.enrollmentplatform.enrollment.application.summary.ListEnrollment
 import com.duoc.enrollmentplatform.enrollment.application.summary.ReplaceEnrollmentSummaryUseCase;
 import com.duoc.enrollmentplatform.enrollment.application.summary.UploadEnrollmentSummaryUseCase;
 import com.duoc.enrollmentplatform.enrollment.domain.repositories.EnrollmentRepository;
-import com.duoc.enrollmentplatform.enrollment.domain.repositories.StudentRepository;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.EnrollmentStore;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.JpaEnrollmentRepository;
-import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.JpaStudentRepository;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.OpenPdfEnrollmentSummaryRenderer;
-import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.StudentStore;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.http.EnrollmentController;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.http.EnrollmentSummaryController;
+import com.duoc.enrollmentplatform.users.application.DeleteUserUseCase;
+import com.duoc.enrollmentplatform.users.application.GetUserUseCase;
+import com.duoc.enrollmentplatform.users.application.ListUsersUseCase;
+import com.duoc.enrollmentplatform.users.application.LoginUserUseCase;
+import com.duoc.enrollmentplatform.users.application.PreRegisterUserUseCase;
+import com.duoc.enrollmentplatform.users.application.RegisterUserUseCase;
+import com.duoc.enrollmentplatform.users.application.UpdateUserUseCase;
+import com.duoc.enrollmentplatform.users.application.ports.IdentityTenantRegister;
+import com.duoc.enrollmentplatform.users.domain.repositories.UserRepository;
+import com.duoc.enrollmentplatform.users.infrastructure.adapters.JpaUserRepository;
+import com.duoc.enrollmentplatform.users.infrastructure.adapters.NoOpIdentityTenantRegister;
+import com.duoc.enrollmentplatform.users.infrastructure.adapters.UserStore;
+import com.duoc.enrollmentplatform.users.infrastructure.http.UserController;
 
 public class EnrollmentPlatformFactory {
 
@@ -37,8 +47,12 @@ public class EnrollmentPlatformFactory {
         return new JpaCourseRepository(store);
     }
 
-    public static StudentRepository getStudentRepository(StudentStore store) {
-        return new JpaStudentRepository(store);
+    public static UserRepository getUserRepository(UserStore store) {
+        return new JpaUserRepository(store);
+    }
+
+    public static IdentityTenantRegister getIdentityTenantRegister() {
+        return new NoOpIdentityTenantRegister();
     }
 
     public static EnrollmentRepository getEnrollmentRepository(EnrollmentStore store) {
@@ -60,36 +74,49 @@ public class EnrollmentPlatformFactory {
         );
     }
 
-    
     public static EnrollmentController createEnrollmentController(
             CourseRepository courseRepository,
-            StudentRepository studentRepository,
+            UserRepository userRepository,
             EnrollmentRepository enrollmentRepository,
             EnrollmentSummaryGenerator summaryGenerator,
             EnrollmentSummaryStorage summaryStorage,
-            EnrollmentMessagePublisher messagePublisher) { 
+            EnrollmentMessagePublisher messagePublisher) {
         return new EnrollmentController(
-                new CreateEnrollmentUseCase(courseRepository, studentRepository, enrollmentRepository, summaryGenerator, summaryStorage, messagePublisher), 
+                new CreateEnrollmentUseCase(courseRepository, userRepository, enrollmentRepository, summaryGenerator, summaryStorage, messagePublisher),
                 new ListEnrollmentsUseCase(enrollmentRepository),
                 new GetEnrollmentUseCase(enrollmentRepository),
-                new UpdateEnrollmentUseCase(courseRepository, enrollmentRepository, studentRepository, summaryGenerator, summaryStorage),
+                new UpdateEnrollmentUseCase(courseRepository, enrollmentRepository, userRepository, summaryGenerator, summaryStorage),
                 new DeleteEnrollmentUseCase(enrollmentRepository, summaryStorage)
         );
     }
 
     public static EnrollmentSummaryController createEnrollmentSummaryController(
             EnrollmentRepository enrollmentRepository,
-            StudentRepository studentRepository,
+            UserRepository userRepository,
             EnrollmentSummaryGenerator summaryGenerator,
             EnrollmentSummaryStorage summaryStorage,
             EnrollmentSummaryPdfRenderer pdfRenderer) {
         return new EnrollmentSummaryController(
-                new GenerateEnrollmentSummaryFileUseCase(enrollmentRepository, studentRepository, summaryGenerator),
-                new UploadEnrollmentSummaryUseCase(enrollmentRepository, studentRepository, summaryGenerator, summaryStorage),
+                new GenerateEnrollmentSummaryFileUseCase(enrollmentRepository, userRepository, summaryGenerator),
+                new UploadEnrollmentSummaryUseCase(enrollmentRepository, userRepository, summaryGenerator, summaryStorage),
                 new DownloadEnrollmentSummaryUseCase(summaryStorage, pdfRenderer),
                 new ReplaceEnrollmentSummaryUseCase(summaryStorage),
                 new DeleteEnrollmentSummaryUseCase(summaryStorage),
                 new ListEnrollmentSummariesUseCase(summaryStorage)
+        );
+    }
+
+    public static UserController createUserController(
+            UserRepository userRepository,
+            IdentityTenantRegister identityTenantRegister) {
+        return new UserController(
+                new PreRegisterUserUseCase(userRepository),
+                new RegisterUserUseCase(userRepository, identityTenantRegister),
+                new LoginUserUseCase(userRepository),
+                new ListUsersUseCase(userRepository),
+                new GetUserUseCase(userRepository),
+                new UpdateUserUseCase(userRepository),
+                new DeleteUserUseCase(userRepository)
         );
     }
 }

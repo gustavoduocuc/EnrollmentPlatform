@@ -2,7 +2,7 @@ package com.duoc.enrollmentplatform.enrollment.application.summary;
 
 import com.duoc.enrollmentplatform.enrollment.application.EnrollmentLineDTO;
 import com.duoc.enrollmentplatform.enrollment.domain.entities.Enrollment;
-import com.duoc.enrollmentplatform.enrollment.domain.entities.Student;
+import com.duoc.enrollmentplatform.users.domain.entities.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class EnrollmentSummaryGenerator {
@@ -12,7 +12,7 @@ public class EnrollmentSummaryGenerator {
         this.objectMapper = new ObjectMapper();
     }
 
-    public byte[] toJsonBytes(Enrollment enrollment, Student student) {
+    public byte[] toJsonBytes(Enrollment enrollment, User student) {
         EnrollmentSummaryDocumentDTO document = toDocument(enrollment, student);
         try {
             return objectMapper.writeValueAsBytes(document);
@@ -21,7 +21,7 @@ public class EnrollmentSummaryGenerator {
         }
     }
 
-    public EnrollmentSummaryDocumentDTO toDocument(Enrollment enrollment, Student student) {
+    public EnrollmentSummaryDocumentDTO toDocument(Enrollment enrollment, User student) {
         var lineDtos = enrollment.getLines().stream()
                 .map(line -> new EnrollmentLineDTO(
                         line.getCourseId().getValue(),

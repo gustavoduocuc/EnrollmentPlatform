@@ -7,13 +7,15 @@ import com.duoc.enrollmentplatform.enrollment.application.EnrollmentSummaryDTO;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher;
 import com.duoc.enrollmentplatform.enrollment.application.summary.EnrollmentSummaryGenerator;
 import com.duoc.enrollmentplatform.enrollment.application.UpdateEnrollmentUseCase;
-import com.duoc.enrollmentplatform.enrollment.domain.entities.Student;
 import com.duoc.enrollmentplatform.enrollment.domain.repositories.InMemoryEnrollmentRepository;
-import com.duoc.enrollmentplatform.enrollment.domain.repositories.InMemoryStudentRepository;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.InMemoryEnrollmentSummaryStorage;
 import com.duoc.enrollmentplatform.shared.domain.valueobjects.Email;
 import com.duoc.enrollmentplatform.shared.domain.valueobjects.Id;
 import com.duoc.enrollmentplatform.shared.domain.valueobjects.Money;
+import com.duoc.enrollmentplatform.users.domain.entities.User;
+import com.duoc.enrollmentplatform.users.domain.repositories.InMemoryUserRepository;
+import com.duoc.enrollmentplatform.users.domain.valueobjects.Role;
+import com.duoc.enrollmentplatform.users.domain.valueobjects.UserStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -31,15 +33,21 @@ class UpdateEnrollmentUseCaseTest {
         InMemoryCourseRepository courses = new InMemoryCourseRepository(List.of(
                 Course.create(Id.create("c-1"), "Intro", "A", 10, Money.create(150000)),
                 Course.create(Id.create("c-2"), "DB", "B", 10, Money.create(120000))));
-        InMemoryStudentRepository students = new InMemoryStudentRepository(List.of(
-                Student.create(Id.create("s-1"), "Juan", Email.create("juan@duoc.cl"))));
+        InMemoryUserRepository users = new InMemoryUserRepository(List.of(
+                User.reconstitute(
+                        Id.create("u-1"),
+                        Email.create("juan@duoc.cl"),
+                        "Juan",
+                        Id.create("s-1"),
+                        Role.STUDENT,
+                        UserStatus.ACTIVE)));
         InMemoryEnrollmentRepository enrollments = new InMemoryEnrollmentRepository();
 
-        // Se agregó el mock del publisher para satisfacer el constructor
-        CreateEnrollmentUseCase create = new CreateEnrollmentUseCase(courses, students, enrollments, generator, storage, mock(EnrollmentMessagePublisher.class));
+        CreateEnrollmentUseCase create = new CreateEnrollmentUseCase(
+                courses, users, enrollments, generator, storage, mock(EnrollmentMessagePublisher.class));
         EnrollmentSummaryDTO created = create.execute("s-1", List.of("c-1"));
 
-        UpdateEnrollmentUseCase update = new UpdateEnrollmentUseCase(courses, enrollments, students, generator, storage);
+        UpdateEnrollmentUseCase update = new UpdateEnrollmentUseCase(courses, enrollments, users, generator, storage);
         EnrollmentSummaryDTO updated = update.execute(created.enrollmentId, List.of("c-1", "c-2"));
 
         assertEquals(270000, updated.totalAmount);

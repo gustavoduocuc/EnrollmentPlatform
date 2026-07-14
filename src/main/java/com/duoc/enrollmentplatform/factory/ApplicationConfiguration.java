@@ -7,11 +7,13 @@ import com.duoc.enrollmentplatform.enrollment.application.summary.EnrollmentSumm
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentSummaryPdfRenderer;
 import com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentSummaryStorage;
 import com.duoc.enrollmentplatform.enrollment.domain.repositories.EnrollmentRepository;
-import com.duoc.enrollmentplatform.enrollment.domain.repositories.StudentRepository;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.EnrollmentStore;
-import com.duoc.enrollmentplatform.enrollment.infrastructure.adapters.StudentStore;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.http.EnrollmentController;
 import com.duoc.enrollmentplatform.enrollment.infrastructure.http.EnrollmentSummaryController;
+import com.duoc.enrollmentplatform.users.application.ports.IdentityTenantRegister;
+import com.duoc.enrollmentplatform.users.domain.repositories.UserRepository;
+import com.duoc.enrollmentplatform.users.infrastructure.adapters.UserStore;
+import com.duoc.enrollmentplatform.users.infrastructure.http.UserController;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,8 +26,13 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    public StudentRepository studentRepository(StudentStore store) {
-        return EnrollmentPlatformFactory.getStudentRepository(store);
+    public UserRepository userRepository(UserStore store) {
+        return EnrollmentPlatformFactory.getUserRepository(store);
+    }
+
+    @Bean
+    public IdentityTenantRegister identityTenantRegister() {
+        return EnrollmentPlatformFactory.getIdentityTenantRegister();
     }
 
     @Bean
@@ -51,27 +58,34 @@ public class ApplicationConfiguration {
     @Bean
     public EnrollmentController enrollmentController(
             CourseRepository courseRepository,
-            StudentRepository studentRepository,
+            UserRepository userRepository,
             EnrollmentRepository enrollmentRepository,
             EnrollmentSummaryGenerator enrollmentSummaryGenerator,
             EnrollmentSummaryStorage enrollmentSummaryStorage,
-            com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher enrollmentMessagePublisher) { 
-        
+            com.duoc.enrollmentplatform.enrollment.application.ports.EnrollmentMessagePublisher enrollmentMessagePublisher) {
+
         return EnrollmentPlatformFactory.createEnrollmentController(
-                courseRepository, studentRepository, enrollmentRepository,
-                enrollmentSummaryGenerator, enrollmentSummaryStorage, 
-                enrollmentMessagePublisher); 
+                courseRepository, userRepository, enrollmentRepository,
+                enrollmentSummaryGenerator, enrollmentSummaryStorage,
+                enrollmentMessagePublisher);
     }
 
     @Bean
     public EnrollmentSummaryController enrollmentSummaryController(
             EnrollmentRepository enrollmentRepository,
-            StudentRepository studentRepository,
+            UserRepository userRepository,
             EnrollmentSummaryGenerator enrollmentSummaryGenerator,
             EnrollmentSummaryStorage enrollmentSummaryStorage,
             EnrollmentSummaryPdfRenderer enrollmentSummaryPdfRenderer) {
         return EnrollmentPlatformFactory.createEnrollmentSummaryController(
-                enrollmentRepository, studentRepository, enrollmentSummaryGenerator,
+                enrollmentRepository, userRepository, enrollmentSummaryGenerator,
                 enrollmentSummaryStorage, enrollmentSummaryPdfRenderer);
+    }
+
+    @Bean
+    public UserController userController(
+            UserRepository userRepository,
+            IdentityTenantRegister identityTenantRegister) {
+        return EnrollmentPlatformFactory.createUserController(userRepository, identityTenantRegister);
     }
 }

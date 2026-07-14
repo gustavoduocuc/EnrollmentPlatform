@@ -30,12 +30,16 @@ src/main/java/com/duoc/enrollmentplatform/
 │   ├── application/        # ListCoursesUseCase, CreateCourseUseCase, DTOs
 │   └── infrastructure/     # JpaCourseRepository, CourseController
 ├── enrollment/
-│   ├── domain/             # Student, Enrollment, EnrollmentLine, repos + InMemory
+│   ├── domain/             # Enrollment, EnrollmentLine, repos + InMemory
 │   ├── application/        # CRUD inscripciones (use cases + DTOs)
 │   │   ├── summary/        # Resúmenes JSON/PDF y S3 (use cases)
 │   │   └── ports/          # EnrollmentSummaryStorage, PdfRenderer
 │   └── infrastructure/     # JPA/S3 adapters, EnrollmentController, EnrollmentSummaryController
-└── factory/                # EnrollmentPlatformFactory, ApplicationConfiguration
+├── users/
+│   ├── domain/             # User, Role, UserStatus, UserRepository + InMemory
+│   ├── application/        # Pre-registro, registro, login, CRUD ADMIN
+│   └── infrastructure/     # JpaUserRepository, UserController, IdentityTenantRegister
+└── factory/                # EnrollmentPlatformFactory, ApplicationConfiguration, SecurityConfiguration
 
 src/main/resources/
 ├── application.properties          # Base; perfil: ${SPRING_PROFILES_ACTIVE:local}
@@ -65,11 +69,16 @@ Guía completa: **[docs/configuracion-desarrollador.md](docs/configuracion-desar
 docker compose up -d localstack
 docker exec "$(docker ps -qf 'ancestor=localstack/localstack:4.4.0')" \
   awslocal s3 mb s3://enrollment-platform-summaries
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ./run-local.sh
 ```
 
-`run-local.sh` fuerza el perfil `local`, exporta credenciales `test`/`test` para LocalStack y **ignora** las variables Oracle de `.env` (si las tienes para prod). Si tienes un `.env` con `SPRING_PROFILES_ACTIVE=prod`, no afecta: este script siempre usa `local`.
+`./run-local.sh` fuerza el perfil `local` (H2), LocalStack/S3, RabbitMQ, e ignora Oracle del `.env`.
+
+JWT lo controla `ENROLLMENT_SECURITY_JWT_ENABLED` en `.env` (o el entorno):
+- `true` → exige `AZURE_B2C_JWK_SET_URI` y `AZURE_B2C_AUDIENCE`; API con Bearer. `/h2-console` sigue público.
+- `false` / ausente → API abierta (sin token).
+
+> Si antes usabas `docker run --name rabbitmq` y el contenedor quedó detenido, un nuevo `docker run` falla por nombre duplicado. Preferible: `docker start rabbitmq` o dejar que `./run-local.sh` lo reinicie.
 
 **Perfil `prod` (Oracle + wallet mTLS + RabbitMQ)** — descarga tu wallet desde OCI, configura `.env` y levanta dependencias:
 

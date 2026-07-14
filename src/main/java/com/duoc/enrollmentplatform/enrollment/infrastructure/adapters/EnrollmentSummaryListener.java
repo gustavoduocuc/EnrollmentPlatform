@@ -12,30 +12,24 @@ public class EnrollmentSummaryListener {
 
     private final JpaEnrollmentSummaryRecordRepository repository;
 
-    
     public EnrollmentSummaryListener(JpaEnrollmentSummaryRecordRepository repository) {
         this.repository = repository;
     }
 
-    
     @RabbitListener(queues = RabbitMQConfiguration.QUEUE_NAME)
     public void receiveMessage(Map<String, String> payload) {
         System.out.println("Mensaje asíncrono recibido desde RabbitMQ: " + payload);
-        
-        
+
         String enrollmentId = payload.get("enrollmentId");
         String studentId = payload.get("studentId");
         String status = payload.get("status");
-        
-        
-        String id = UUID.randomUUID().toString(); 
-        
-        
+
+        String id = UUID.randomUUID().toString();
+
         EnrollmentSummaryRecord record = new EnrollmentSummaryRecord(id, enrollmentId, studentId, status);
-        
-        
+
         repository.save(record);
-        
+
         System.out.println("Resumen guardado satisfactoriamente en la nueva tabla de la BD.");
     }
 }
