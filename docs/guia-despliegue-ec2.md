@@ -38,25 +38,16 @@ Configurar en **Settings → Secrets and variables → Actions**:
 | `AZURE_B2C_JWK_SET_URI` | Requerido si JWT Spring activo. URL JWK set de Azure AD B2C |
 | `AZURE_B2C_AUDIENCE` | Requerido si JWT Spring activo. Client ID de la app en Azure |
 | `ENROLLMENT_SECURITY_LOG_LEVEL` | Opcional. Nivel de log de Spring Security; default: `INFO` |
-| `SPRING_RABBITMQ_HOST` | IP privada de EC2 donde corre RabbitMQ (ej. `172.31.x.x`). Ver [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md) |
 
 Detalle de las capas de seguridad (Gateway vs Spring): [seguridad-jwt.md](seguridad-jwt.md).
 
 ### RabbitMQ en EC2
 
-El pipeline **no** levanta RabbitMQ. Debe estar corriendo en la instancia antes del deploy:
+El pipeline **levanta RabbitMQ automáticamente** en cada deploy (contenedor `rabbitmq:3-management` en la red Docker `enrollment-net`). No hace falta ejecutar `docker run` manual ni configurar un secret de host.
 
-```bash
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
-```
+La app se conecta por hostname interno `rabbitmq` (mismo patrón que Docker Compose local). Guía completa: [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
 
-Obtener la IP privada de la instancia (valor típico de `SPRING_RABBITMQ_HOST`):
-
-```bash
-curl -s http://169.254.169.254/latest/meta-data/local-ipv4
-```
-
-La app en Docker se conecta a RabbitMQ usando esa IP. Guía completa: [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
+Si tenías configurado el secret `SPRING_RABBITMQ_HOST`, puedes eliminarlo; ya no se usa.
 
 ### S3 en producción
 
@@ -110,7 +101,6 @@ Copiar la salida completa al secret. No versionar el archivo `.pem` en el reposi
 - Security group: regla de entrada TCP en el puerto **8080**.
 - Acceso SSH con la llave asociada a `EC2_SSH_KEY`.
 - No desplegar `Wallet_ENROLLMENTPLATFORMDB/` ni `.env` en el servidor.
-- Contenedor de RabbitMQ corriendo (ver sección [RabbitMQ en EC2](#rabbitmq-en-ec2) arriba).
 - Security group: regla de entrada TCP en el puerto **8080** para la aplicación y **15672** (opcional) para la consola web de RabbitMQ.
 
 ---
@@ -130,7 +120,7 @@ Secuencia del job `build-and-deploy`:
 1. `./mvnw test`
 2. Build de imagen Docker (wallet desde `ORACLE_WALLET_BASE64`)
 3. Push a `{DOCKERHUB_USERNAME}/enrollment-platform:latest`
-4. SSH a EC2: `docker pull`, recreación del contenedor con variables Oracle y mapeo interno de RabbitMQ mediante `SPRING_RABBITMQ_HOST`.
+4. SSH a EC2: bootstrap de RabbitMQ en red `enrollment-net`, `docker pull`, recreación del contenedor de la app con `RABBITMQ_HOST=rabbitmq`.
 
 ---
 
@@ -171,6 +161,15 @@ SELECT * FROM enrollment_summary_mq ORDER BY created_at DESC;
 
 Debe aparecer un registro con `status = 'CREATED'`. Más detalle: [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md).
 
+Verificar contenedores en EC2 (por SSH):
+
+```bash
+docker ps
+docker network inspect enrollment-net
+```
+
+Deben aparecer `rabbitmq` y `enrollment-platform` en la red `enrollment-net`.
+
 ---
 
 ## Resumen
@@ -178,8 +177,8 @@ Debe aparecer un registro con `status = 'CREATED'`. Más detalle: [procesamiento
 | Entorno | Wallet | Credenciales Oracle | Dependencias Externas |
 | --- | --- | --- | --- |
 | Local | `Wallet_ENROLLMENTPLATFORMDB/` | `.env` | `.env` + LocalStack + RabbitMQ |
-| GitHub | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_*`, `SPRING_RABBITMQ_HOST` |
-| EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | S3 + contenedor RabbitMQ manual |
+| GitHub | `ORACLE_WALLET_BASE64` | `SPRING_DATASOURCE_*` | `AWS_S3_*` |
+| EC2 | Imagen Docker (`/app/wallet`) | Variables en `docker run` (workflow) | S3 + RabbitMQ (automático en deploy) |
 
 ---
 

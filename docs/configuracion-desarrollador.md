@@ -178,7 +178,6 @@ Cada fork con despliegue a EC2 configura **sus propios** secrets en **Settings �
 - `ORACLE_WALLET_BASE64` — zip de **tu** `Wallet_ENROLLMENTPLATFORMDB/` en base64
 - `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`
 - `SPRING_DATASOURCE_URL` — alias de **tu** `tnsnames.ora`
-- `SPRING_RABBITMQ_HOST` — IP privada de EC2 donde corre RabbitMQ (ver [procesamiento-asincrono-mq.md](procesamiento-asincrono-mq.md))
 - AWS, Docker Hub, EC2, JWT Azure (ver tabla completa en [guia-despliegue-ec2.md](guia-despliegue-ec2.md))
 
 Si cambias de instancia Oracle, regenera `ORACLE_WALLET_BASE64`:

@@ -108,7 +108,6 @@ jobs:
           AZURE_B2C_JWK_SET_URI: ${{ secrets.AZURE_B2C_JWK_SET_URI }}
           AZURE_B2C_AUDIENCE: ${{ secrets.AZURE_B2C_AUDIENCE }}
           ENROLLMENT_SECURITY_LOG_LEVEL: ${{ secrets.ENROLLMENT_SECURITY_LOG_LEVEL }}
-          SPRING_RABBITMQ_HOST: ${{ secrets.SPRING_RABBITMQ_HOST }}
           
         run: |
           # Si no hay secret de URL, usamos el alias high del tnsnames.ora.
@@ -118,6 +117,21 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             "${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }}" bash -s << EOF
           set -e
+          docker network create enrollment-net 2>/dev/null || true
+          if ! docker ps -a --format '{{.Names}}' | grep -qx 'rabbitmq'; then
+            docker run -d \
+              --name rabbitmq \
+              --network enrollment-net \
+              --restart unless-stopped \
+              -p 5672:5672 \
+              -p 15672:15672 \
+              -e RABBITMQ_DEFAULT_USER=guest \
+              -e RABBITMQ_DEFAULT_PASS=guest \
+              rabbitmq:3-management
+          else
+            docker network connect enrollment-net rabbitmq 2>/dev/null || true
+            docker start rabbitmq 2>/dev/null || true
+          fi
           # EC2 también necesita login para hacer docker pull de una imagen privada.
           echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
           docker pull "${IMAGE}"
@@ -125,6 +139,7 @@ jobs:
           docker rm enrollment-platform 2>/dev/null || true
           docker run -d \
             --name enrollment-platform \
+            --network enrollment-net \
             -p 8080:8080 \
             -e SPRING_PROFILES_ACTIVE=prod \
             -e SPRING_DATASOURCE_URL="${DATASOURCE_URL}" \
@@ -142,6 +157,9 @@ jobs:
             -e AZURE_B2C_JWK_SET_URI="${AZURE_B2C_JWK_SET_URI}" \
             -e AZURE_B2C_AUDIENCE="${AZURE_B2C_AUDIENCE}" \
             -e ENROLLMENT_SECURITY_LOG_LEVEL="${ENROLLMENT_SECURITY_LOG_LEVEL:-INFO}" \
-            -e SPRING_RABBITMQ_HOST="${SPRING_RABBITMQ_HOST}" \
+            -e RABBITMQ_HOST=rabbitmq \
+            -e RABBITMQ_PORT=5672 \
+            -e RABBITMQ_USER=guest \
+            -e RABBITMQ_PASS=guest \
             "${IMAGE}"
           EOF
